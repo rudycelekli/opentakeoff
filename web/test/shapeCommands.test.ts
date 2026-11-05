@@ -551,6 +551,20 @@ test("add: declared author is stamped at mint; a shape already attributed keeps 
   } finally { setAuthorName(""); }
 });
 
+test("undo puts back the previous editor: geom and reassign round trips restore updated_by exactly", () => {
+  try {
+    setAuthorName("Aaron");
+    const byMichael = { ...machineShape("shp-m"), updated_at: "2026-01-01T00:00:00.000Z", updated_by: "Michael E" };
+    const neverEdited = { ...machineShape("shp-n") };
+    const ring = [[0.2, 0.2], [0.6, 0.2], [0.6, 0.6]];
+    for (const s of [byMichael, neverEdited]) {
+      const fwd = roundTrip([s], { type: "geom", id: s.id, editKind: "vertex", verts_norm: ring });
+      assert.equal(fwd.shapes[0].updated_by, "Aaron");
+      roundTrip([s], { type: "reassign", ids: [s.id], condition_id: "cnd-2" });
+    }
+  } finally { setAuthorName(""); }
+});
+
 test("add: undeclared session mints no author field — payloads byte-identical", () => {
   setAuthorName("");
   const { shapes } = applyShapeCommand([], { type: "add", shapes: [{ sheet_id: "a#1", verts_norm: [[0, 0], [1, 0], [1, 1]] }] });

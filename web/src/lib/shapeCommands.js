@@ -26,7 +26,7 @@
 //             editKind ∈ vertex | edge | move | vertexDelete (vertexDelete
 //             stamps "vertex" — dropping a corner is a vertex edit).
 //             `restampFrom` (the undo path) skips stampEdit and restores the
-//             prior updated_at/origin verbatim — undo must not leave a phantom
+//             prior updated_at/updated_by/origin verbatim — undo must not leave a phantom
 //             `edited` flag or a bumped edits tally behind.
 //   reassign  stampEdit("reassign") per shape (stampEdit itself gives human manual
 //             shapes updated_at only, machine shapes the full origin stamp);
@@ -123,15 +123,17 @@ export function geomSnapshot(s) {
     verts_norm: s.verts_norm.map((v) => [...v]),
     ...("computed" in s ? { computed: s.computed } : {}),
     ...("updated_at" in s ? { updated_at: s.updated_at } : {}),
+    ...("updated_by" in s ? { updated_by: s.updated_by } : {}),
     ...("origin" in s ? { origin: s.origin } : {}),
   };
 }
 
-// Write a snapshot's four fields back onto a shape, presence-aware.
+// Write a snapshot's fields back onto a shape, presence-aware.
 const withGeomFields = (s, snap) => {
   const out = { ...s, verts_norm: snap.verts_norm };
   if ("computed" in snap) out.computed = snap.computed; else delete out.computed;
   if ("updated_at" in snap) out.updated_at = snap.updated_at; else delete out.updated_at;
+  if ("updated_by" in snap) out.updated_by = snap.updated_by; else delete out.updated_by;
   if ("origin" in snap) out.origin = snap.origin; else delete out.origin;
   return out;
 };
@@ -156,6 +158,7 @@ const withCutout = (s, patch) => {
 const assignSnapshot = (s) => ({
   id: s.id, condition_id: s.condition_id,
   ...("updated_at" in s ? { updated_at: s.updated_at } : {}),
+  ...("updated_by" in s ? { updated_by: s.updated_by } : {}),
   ...("origin" in s ? { origin: s.origin } : {}),
 });
 
@@ -213,6 +216,7 @@ export function applyShapeCommand(shapes, cmd) {
           const out = { ...s, verts_norm: cmd.verts_norm };
           if (cmd.computed !== undefined) out.computed = cmd.computed;
           if ("updated_at" in cmd.restampFrom) out.updated_at = cmd.restampFrom.updated_at; else delete out.updated_at;
+          if ("updated_by" in cmd.restampFrom) out.updated_by = cmd.restampFrom.updated_by; else delete out.updated_by;
           if ("origin" in cmd.restampFrom) out.origin = cmd.restampFrom.origin; else delete out.origin;
           inverse = geomInverse(cmd.id, cmd.editKind, geomSnapshot(s));   // redo-of-undo restores the current (stamped) state verbatim
           return out;
@@ -240,6 +244,7 @@ export function applyShapeCommand(shapes, cmd) {
           if (!r) return s;
           const out = { ...s, condition_id: r.condition_id };
           if ("updated_at" in r) out.updated_at = r.updated_at; else delete out.updated_at;
+          if ("updated_by" in r) out.updated_by = r.updated_by; else delete out.updated_by;
           if ("origin" in r) out.origin = r.origin; else delete out.origin;
           return out;
         });
@@ -428,6 +433,7 @@ const geomInverse = (id, editKind, snap) => ({
   ...("computed" in snap ? { computed: snap.computed } : {}),
   restampFrom: {
     ...("updated_at" in snap ? { updated_at: snap.updated_at } : {}),
+    ...("updated_by" in snap ? { updated_by: snap.updated_by } : {}),
     ...("origin" in snap ? { origin: snap.origin } : {}),
   },
 });
