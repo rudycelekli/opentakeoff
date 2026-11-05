@@ -133,6 +133,9 @@ export interface MaterialRow {
   /** $ per this row's own unit (bag, pail, roll) — lib/estimate.js. Absent =
    * not entered, never $0. Set by set_pricing; never carried by templates. */
   price?: number;
+  /** $ labor per this row's unit — lib/estimate.js. Set in the app's Estimate
+   * panel; MCP carries it through import and export but has no verb for it. */
+  labor_price?: number;
 }
 
 /** A takeoff proposal (#365): a named batch of pending agent shapes with one

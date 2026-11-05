@@ -120,10 +120,16 @@ export async function importTakeoff(session: Session, filePath: string) {
     if (!src || src === c) continue;
     const priced = sanitizePricing(src.pricing);
     if (!c.pricing && priced) c.pricing = priced as Condition["pricing"];
-    const srcPrices = new Map((Array.isArray(src.materials) ? src.materials : []).filter((m) => m && m.name && priceValue(m.price) !== null).map((m) => [String(m.name).trim().toLowerCase(), priceValue(m.price) as number]));
+    const srcRows = (Array.isArray(src.materials) ? src.materials : []).filter((m) => m && m.name);
+    const pricesOf = (k: "price" | "labor_price") => new Map(srcRows.filter((m) => priceValue(m[k]) !== null).map((m) => [String(m.name).trim().toLowerCase(), priceValue(m[k]) as number]));
+    const srcPrices = pricesOf("price");
+    const srcLabor = pricesOf("labor_price");   // an item's labor $ per unit (lib/estimate.js), set in the app
     for (const m of c.materials ?? []) {
-      const v = m && m.name ? srcPrices.get(m.name.trim().toLowerCase()) : undefined;
-      if (m && m.price === undefined && v !== undefined) m.price = v;
+      if (!m || !m.name) continue;
+      const v = srcPrices.get(m.name.trim().toLowerCase());
+      if (m.price === undefined && v !== undefined) m.price = v;
+      const l = srcLabor.get(m.name.trim().toLowerCase());
+      if (m.labor_price === undefined && l !== undefined) m.labor_price = l;
     }
   }
   const objOf = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? v as Record<string, unknown> : null);

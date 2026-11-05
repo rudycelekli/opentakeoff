@@ -138,6 +138,29 @@ test("export_takeoff carries prices and the project records; a fresh session ado
   assert.equal(joined.materials.find((m) => m.name === "Adhesive")!.price, 30);
 });
 
+test("a joined unpriced condition takes an item's labor price from the file too, not only its material price", async () => {
+  const s = await measured();
+  s.setPricing("CPT-1", { material: 2, labor: 1, materials: [{ name: "Adhesive", price: 30 }] });
+  const doc = s.exportPayload() as any;
+  // the app's Estimate panel prices an item's labor; MCP has no verb for it
+  doc.conditions.find((c: any) => c.finish_tag === "CPT-1").materials.find((m: any) => m.name === "Adhesive").labor_price = 5;
+  const dir = await mkdtemp(path.join(tmpdir(), "ot-estimate-"));
+  const file = path.join(dir, "takeoff.json");
+  await writeFile(file, JSON.stringify(doc));
+
+  const own = new Session();
+  await own.loadPlan(PLAN);
+  own.setScale(KEY, { upp: 1 / 10 });
+  own.measurePolygon(KEY, SQ(0, 0), { condition: "CPT-1", role: "floor_area" });
+  own.editCondition("CPT-1", { waste_pct: 10 });
+  own.editMaterials("CPT-1", { add: [{ name: "Adhesive", per: 50, basis: "area", unit: "pail" }] });
+  own.measureLine(KEY, [[0, 300], [500, 300]], { condition: "RB-1" });
+  await importTakeoff(own, file);
+  const row = own.conditions.find((c) => c.finish_tag === "CPT-1")!.materials.find((m) => m.name === "Adhesive")!;
+  assert.equal(row.price, 30);
+  assert.equal(row.labor_price, 5);
+});
+
 test("export_estimate writes the workbook beside the plan; our own file may be replaced, a foreign one is refused", async () => {
   const s = await measured();
   s.setPricing("CPT-1", { material: 2 });
