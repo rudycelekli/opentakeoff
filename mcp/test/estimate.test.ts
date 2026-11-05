@@ -249,6 +249,19 @@ test("set_pricing keeps old calls unchanged: unit still picks the main line's un
   assert.match(none.note ?? "", /no count quantity yet/);
 });
 
+test("set_pricing line on a condition with nothing measured refuses: the main line isn't known yet", async () => {
+  const s = await measured();
+  s.editMaterials("RB-2", { add: [{ name: "Adhesive", basis: "linear", per: 100, unit: "tube" }] });   // a condition before any trace
+  assert.throws(() => s.setPricing("RB-2", { line: "LF", material: 1.5, labor: 0.75 }), /nothing measured yet.*pass unit "LF"/);
+  assert.equal(s.conditions.find((x) => x.finish_tag === "RB-2")!.pricing, undefined);
+  // pinning the unit prices it as the main line, which is where a measured LF line reads it
+  s.setPricing("RB-2", { unit: "LF", line: "LF", material: 1.5, labor: 0.75, materials: [{ name: "Adhesive", price: 8 }] });
+  s.measureLine(KEY, [[0, 500], [500, 500]], { condition: "RB-2" });
+  const line = s.pricedEstimate().lines.find((l: any) => l.finish_tag === "RB-2" && l.main) as any;
+  assert.equal(line.unit, "LF");
+  assert.deepEqual(line.missing, []);
+});
+
 // A bordered linear condition, as the canvas writes it (thickness → border SF on
 // each run): before multi-line estimates it priced as one SF line.
 async function bordered() {

@@ -5105,6 +5105,12 @@ export class Session {
       throw new UserError(`${tag}'s ${KIND[target]} line is its main line, priced in ${mainUnit}. Pass line "${mainUnit}" (or leave line out) to price it, or unit "${target}" to switch the main line's unit.`);
     }
     if (target === "SY") throw new UserError(`${tag}'s second area line prices in SF — pass line "SF".`);
+    // Nothing measured and no unit picked: the main line isn't known yet (it is
+    // what gets measured first), so a by_unit rate could land on the line that
+    // later becomes main — where it is never read.
+    if (target && next.unit === undefined && !(Number(row?.total_sf) > 0 || Number(row?.lf) > 0 || Number(row?.ea) > 0)) {
+      throw new UserError(`${tag} has nothing measured yet, so its main line isn't known. Leave line out to price the main line once it is measured, or pass unit "${target}" to make ${target} the main line.`);
+    }
     const rates: Record<string, unknown> = target ? { ...(next.by_unit?.[target] ?? {}) } : (next as Record<string, unknown>);
     for (const k of ["material", "labor"] as const) {
       if (opts[k] === null) delete rates[k];
