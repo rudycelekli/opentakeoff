@@ -215,6 +215,17 @@ test("loadPdfData resolves a file living in a SUBFOLDER purely via the manifest 
   assert.equal(await drive.findChild("folder1", "wing-b.pdf"), null);
 });
 
+test("re-dropping a PDF whose sheet was picked from a SUBFOLDER makes the new bytes the sheet; the picked file is untouched", async () => {
+  const drive = fakeDrive();
+  drive._byId.set("sub_pdf", { id: "sub_pdf", name: "wing-b.pdf", parent: "subfolder1", mimeType: PDF_MIME, bytes: new Uint8Array([1, 1, 1]) });
+  const store = createCloudStore("folder1", drive as any, { local: fakeLocal() as any });
+  await store.addSheets([{ id: "sub_pdf", name: "wing-b.pdf" }]);
+  await store.addPdf(fakeFile("wing-b.pdf", new Uint8Array([9, 9, 9])) as any);
+  assert.deepEqual(await store.loadPdfData("wing-b.pdf"), new Uint8Array([9, 9, 9]));
+  assert.deepEqual((await store.listSheets()).map((p: any) => p.name), ["wing-b.pdf"]);
+  assert.deepEqual(drive._byId.get("sub_pdf").bytes, new Uint8Array([1, 1, 1]));
+});
+
 test("listFolder splits folders vs pdfs, carries size+modifiedTime, defaults to the project folder", async () => {
   const drive = fakeDrive();
   drive._byId.set("d1", { id: "d1", name: "Wing B", parent: "folder1", mimeType: "application/vnd.google-apps.folder", bytes: new Uint8Array() });

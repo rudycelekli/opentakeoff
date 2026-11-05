@@ -407,8 +407,15 @@ export function createCloudStore(folderId, drive, { local = localStore, maxPdfBy
       }
       // and again: a hash begun during the upload read the old bytes
       forgetHash(file.name);
-      // a dropped PDF joins the working set (dedupe by id/name in addSheets)
-      await this.addSheets([{ id: fileId, name: file.name }]);
+      // a dropped PDF joins the working set (dedupe by id/name in addSheets). A
+      // sheet of that name picked from a SUBFOLDER isn't what findChild saw: point
+      // its entry at the new bytes (the picked file itself is left untouched).
+      await ensureManifest();
+      if (manifestFiles.some((f) => f.name === file.name && f.id !== fileId)) {
+        await mutateManifest((files) => files.map((f) => (f.name === file.name ? { id: fileId, name: file.name } : f)));
+      } else {
+        await this.addSheets([{ id: fileId, name: file.name }]);
+      }
       return { name: file.name };
     },
 
