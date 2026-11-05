@@ -115,7 +115,13 @@ class Dxf {
   private seed = 0x20;
   handle(): string { return (this.seed++).toString(16).toUpperCase(); }
   peek(): string { return this.seed.toString(16).toUpperCase(); }
-  add(code: number | string, value: string | number): void { this.out.push(String(code), String(value)); }
+  add(code: number | string, value: string | number): void {
+    // R2000 has no UTF-8: a character outside ASCII is written as \U+XXXX, the
+    // escape CAD readers decode in pre-2007 files (an en dash in a twin's layer,
+    // an accented room label). The 999 comment is for people; it stays as is.
+    const v = String(value);
+    this.out.push(String(code), Number(code) === 999 ? v : v.replace(/[^\x00-\x7e]/gu, (c) => `\\U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`));
+  }
   text(): string { return this.out.join("\n") + "\n"; }
 }
 

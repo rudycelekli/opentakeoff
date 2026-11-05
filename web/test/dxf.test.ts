@@ -173,6 +173,16 @@ test("layer names: forbidden characters fold to '-', upper-case, empty → UNTAG
   assert.equal(dxfLayerName("x".repeat(80)).length, "OT-".length + 48);
 });
 
+test("non-ASCII text is written as \\U+XXXX (R2000 has no UTF-8): a twin's en dash, an accented label", () => {
+  const conds = [{ id: "c1", finish_tag: "CPT-1 \u2013 Level 2" }];
+  const { dxf } = buildSheetDxf({ sheet_id: SHEET, label: "A-101", dims: DIMS, upp: UPP, shapes: [{ ...room, label: "Caf\u00e9 101" }], conditions: conds });
+  const ents = entities(dxf);
+  assert.equal(ents[0].layer, "OT-CPT-1 \\U+2013 LEVEL 2");
+  assert.equal(ents[1].text, "Caf\\U+00E9 101");
+  const body = dxf.split("\n").filter((_, i, a) => !(i % 2 === 1 && a[i - 1] === "999"));
+  assert.ok(body.every((l) => /^[\x00-\x7e]*$/.test(l)), "no raw non-ASCII outside the 999 comment");
+});
+
 test("file names are filesystem-safe and carry the sheet", () => {
   assert.equal(dxfFileName("Mayflower Apts", "A-101"), "Mayflower Apts_A-101.dxf");
   assert.equal(dxfFileName("", "plan.pdf#2"), "takeoff_plan.pdf#2.dxf");
