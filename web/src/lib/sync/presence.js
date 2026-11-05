@@ -93,6 +93,10 @@ export function createPresence({
     return presP;
   }
 
+  // our own heartbeat file's id: a provider that creates on every put without
+  // one (Google Drive allows duplicate names) must be told to replace in place
+  let ownId = null;
+
   let peersCache = [];
   const subscribers = new Set();
   const notify = () => { for (const cb of subscribers) { try { cb(peersCache); } catch { /* subscriber's problem */ } } };
@@ -106,11 +110,15 @@ export function createPresence({
       let presId;
       if (name) {
         presId = await ensurePresenceFolderId();
-        await provider.putJson({
-          folderId: presId,
-          name: `${deviceId}.json`,
-          data: { device: deviceId, name, sheet: getSheet() ?? null, at: new Date(now()).toISOString() },
-        });
+        const fileName = `${deviceId}.json`;
+        if (!ownId) ownId = (await provider.findChild(presId, fileName))?.id ?? null;
+        const data = { device: deviceId, name, sheet: getSheet() ?? null, at: new Date(now()).toISOString() };
+        try {
+          ownId = (await provider.putJson({ folderId: presId, name: fileName, data, existingId: ownId }))?.id ?? ownId;
+        } catch (e) {
+          ownId = null; // gone (another device collected it): look it up again next beat
+          throw e;
+        }
       } else {
         // Anonymous: read-only pass. Resolve without creating — a fresh
         // transport with no presence yet stays untouched (no litter), and an

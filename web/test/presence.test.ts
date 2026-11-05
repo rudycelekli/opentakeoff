@@ -170,6 +170,39 @@ test("heartbeats with garbage timestamps or missing names never enter the room",
   assert.equal(me.peers().length, 0);
 });
 
+test("a provider that creates a new file on every put without an id (Google Drive): one heartbeat file, one peer", async () => {
+  const p = memProvider();
+  let n = 0;
+  // Drive semantics: no existingId → a NEW file (duplicate names allowed); with one → replace it
+  p.putJson = async ({ folderId, name, data, existingId }: any) => {
+    p.calls++;
+    const id = existingId || `${folderId}/${name}#${++n}`;
+    p._files.set(id, data);
+    return { id };
+  };
+  p.findChild = async (parentId: string, name: string) => {
+    p.calls++;
+    if (parentId === "" && name === ".opentakeoff") return { id: ".opentakeoff", name };
+    if (parentId === ".opentakeoff" && name === "presence") return { id: ".opentakeoff/presence", name };
+    const id = [...p._files.keys()].find((k) => k.startsWith(`${parentId}/${name}#`));
+    return id ? { id, name } : null;
+  };
+  p.listChildren = async (folderId: string) => {
+    p.calls++;
+    return [...p._files.keys()].filter((k) => k.startsWith(`${folderId}/`)).map((id) => ({ id, name: id.slice(folderId.length + 1).replace(/#\d+$/, ""), mimeType: "application/json" }));
+  };
+  const clock = { t: 1_000_000 };
+  const aaron = device(p, "dev-a", "Aaron", clock);
+  for (let i = 0; i < 3; i++) { await aaron.beat(); clock.t += 10 * 60_000; }
+  assert.equal([...p._files.keys()].filter((k) => k.includes("/dev-a.json")).length, 1, "the heartbeat is replaced, not re-created");
+  const beth = device(p, "dev-b", "Beth", clock);
+  await beth.beat();
+  assert.deepEqual(beth.peers().map((x: any) => x.name), ["Aaron"]);
+  // a fresh session for the same device finds its old file instead of adding one
+  await device(p, "dev-a", "Aaron", clock).beat();
+  assert.equal([...p._files.keys()].filter((k) => k.includes("/dev-a.json")).length, 1);
+});
+
 test("ensureDeviceId mints once and sticks", async () => {
   const a = await ensureDeviceId();
   const b = await ensureDeviceId();
