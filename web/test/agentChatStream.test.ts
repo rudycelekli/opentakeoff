@@ -154,6 +154,18 @@ test("openai stream: delta.content in order; parallel tool_calls assembled by in
     });
     assert.equal(json.choices[0].finish_reason, "tool_calls");
   }
+  // a runtime that sends each whole call in its own chunk with no index: two calls, not one merged call
+  const noIndex = openaiStreamAccumulator();
+  for (const e of createSseParser().push([
+    oEv({ choices: [{ index: 0, delta: { role: "assistant", tool_calls: [{ id: "call_1", type: "function", function: { name: "list_sheets", arguments: "{}" } }] } }] }),
+    oEv({ choices: [{ index: 0, delta: { tool_calls: [{ id: "call_2", type: "function", function: { name: "get_conditions", arguments: "{}" } }] } }] }),
+    oEv({ choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }] }),
+    "data: [DONE]\n\n",
+  ].join(""))) noIndex.add(e);
+  assert.deepEqual(noIndex.result().choices[0].message.tool_calls, [
+    { id: "call_1", type: "function", function: { name: "list_sheets", arguments: "{}" } },
+    { id: "call_2", type: "function", function: { name: "get_conditions", arguments: "{}" } },
+  ]);
   // a text-only reply has no tool_calls key at all (what non-streaming sends)
   const acc = openaiStreamAccumulator();
   for (const e of createSseParser().push(openaiTextStream(["Hi", "!"]))) acc.add(e);

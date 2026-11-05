@@ -165,7 +165,12 @@ export function openaiStreamAccumulator() {
       if (typeof d.role === "string") role = d.role;
       for (const [k, tc] of (Array.isArray(d.tool_calls) ? d.tool_calls : []).entries()) {
         if (!tc || typeof tc !== "object") continue;
-        const i = Number.isInteger(tc.index) ? tc.index : k;
+        // no index (some OpenAI-compatible runtimes): a new id is a new call,
+        // even when each call arrives alone in its own chunk at position 0
+        const known = typeof tc.id === "string" && tc.id ? calls.findIndex((c) => c && c.id === tc.id) : -1;
+        const i = Number.isInteger(tc.index) ? tc.index
+          : known >= 0 ? known
+          : tc.id && calls[k]?.id && calls[k].id !== tc.id ? calls.length : k;
         const c = calls[i] || (calls[i] = { id: "", type: "function", function: { name: "", arguments: "" } });
         if (typeof tc.id === "string" && tc.id) c.id = tc.id;
         const fn = tc.function || {};
