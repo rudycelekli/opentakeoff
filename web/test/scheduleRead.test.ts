@@ -121,6 +121,12 @@ test("a WALL PROTECTION heading is its own category; WALL BASE is base", () => {
   assert.equal(byKey(rows)["RB-1"].section, "WALL BASE");
 });
 
+test("a plural WALL BASES heading is base, not wall", () => {
+  const rows = rowsOf(readScheduleSpans(build({ cols: STD, items: [H("FLOORING"), ...FLOOR, H("WALL BASES"), ...BASE] })));
+  assert.deepEqual(cats(rows)["RB-1"], ["base", "heading", true]);
+  assert.equal(byKey(rows)["RB-1"].section, "WALL BASES");
+});
+
 test("a heading's category beats the row's words (a TRANSITION STRIP under FLOORING is floor)", () => {
   const rows = rowsOf(readScheduleSpans(build({ cols: STD, items: [H("FLOORING"), ...FLOOR, R("TS-2", "TRANSITION STRIP", "VENDOR-I", "RAMP", "SATIN"), H("BASE"), ...BASE] })));
   assert.deepEqual(cats(rows)["TS-2"], ["floor", "heading", true]);

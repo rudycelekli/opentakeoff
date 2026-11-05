@@ -15,6 +15,7 @@ test("a heading matches on its first word, punctuation stripped", () => {
 
 test("the longest phrase wins over its first word", () => {
   assert.equal(finishSectionOf("WALL BASE"), "WALL BASE");
+  assert.equal(finishSectionOf("WALL BASES"), "WALL BASES");
   assert.equal(finishSectionOf("WALL PROTECTION"), "WALL PROTECTION");
   assert.equal(finishSectionOf("WALL FINISHES"), "WALL FINISHES");
   assert.equal(finishSectionOf("FLOOR FINISHES"), "FLOOR FINISHES");
@@ -36,6 +37,7 @@ test("every heading maps to a category; MISC and ACCESSORIES name none", () => {
   assert.equal(Object.keys(FINISH_SECTION_CATEGORY).length, FINISH_SECTION_HEADINGS.length);
   assert.equal(FINISH_SECTION_CATEGORY.FLOORS, "floor");
   assert.equal(FINISH_SECTION_CATEGORY["WALL BASE"], "base");
+  assert.equal(FINISH_SECTION_CATEGORY["WALL BASES"], "base");
   assert.equal(FINISH_SECTION_CATEGORY["WALL FINISHES"], "wall");
   assert.equal(FINISH_SECTION_CATEGORY["WALL PROTECTION"], "wall_protection");
   assert.equal(FINISH_SECTION_CATEGORY.TRIM, "transition");

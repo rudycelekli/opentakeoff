@@ -15,7 +15,7 @@
  * "WALL"). */
 export const FINISH_SECTION_HEADINGS = [
   "FLOORING", "FLOORS", "FLOOR", "FLOOR FINISHES",
-  "BASE", "BASES", "WALL BASE",
+  "BASE", "BASES", "WALL BASE", "WALL BASES",
   "WALLS", "WALL", "WALL FINISHES",
   "WALL PROTECTION",
   "TRANSITIONS", "TRANSITION", "TRIM",
@@ -31,7 +31,7 @@ export type FinishSection = (typeof FINISH_SECTION_HEADINGS)[number];
 export type FinishSectionCategory = "floor" | "base" | "wall" | "wall_protection" | "transition" | "ceiling" | "other";
 export const FINISH_SECTION_CATEGORY: Readonly<Record<FinishSection, FinishSectionCategory | null>> = {
   FLOORING: "floor", FLOORS: "floor", FLOOR: "floor", "FLOOR FINISHES": "floor",
-  BASE: "base", BASES: "base", "WALL BASE": "base",
+  BASE: "base", BASES: "base", "WALL BASE": "base", "WALL BASES": "base",
   WALLS: "wall", WALL: "wall", "WALL FINISHES": "wall",
   "WALL PROTECTION": "wall_protection",
   TRANSITIONS: "transition", TRANSITION: "transition", TRIM: "transition",
